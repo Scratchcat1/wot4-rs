@@ -4,11 +4,14 @@
 #![no_std]
 #![no_main]
 
+mod servo;
+
 use bsp::entry;
 use defmt::*;
 use defmt_rtt as _;
 use embedded_hal::digital::v2::OutputPin;
 use panic_probe as _;
+use servo::{PwmServo, Servo};
 
 // Provide an alias for our BSP so we can switch targets quickly.
 // Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
@@ -17,7 +20,7 @@ use rp_pico as bsp;
 
 use bsp::hal::{
     clocks::{init_clocks_and_plls, Clock},
-    pac,
+    pac, pwm,
     sio::Sio,
     watchdog::Watchdog,
 };
@@ -52,25 +55,93 @@ fn main() -> ! {
         sio.gpio_bank0,
         &mut pac.RESETS,
     );
+    // Init PWMs
+    let mut pwm_slices = pwm::Slices::new(pac.PWM, &mut pac.RESETS);
 
-    // This is the correct pin on the Raspberry Pico board. On other boards, even if they have an
-    // on-board LED, it might need to be changed.
-    //
-    // Notably, on the Pico W, the LED is not connected to any of the RP2040 GPIOs but to the cyw43 module instead.
-    // One way to do that is by using [embassy](https://github.com/embassy-rs/embassy/blob/main/examples/rp/src/bin/wifi_blinky.rs)
-    //
-    // If you have a Pico W and want to toggle a LED with a simple GPIO output pin, you can connect an external
-    // LED to one of the GPIO pins, and reference that pin here. Don't forget adding an appropriate resistor
-    // in series with the LED.
+    // Configure PWM4
+    let pwm0 = &mut pwm_slices.pwm0;
+    pwm0.set_ph_correct();
+    pwm0.set_div_int(20u8); // 50 hz
+    pwm0.enable();
+
+    let pwm1 = &mut pwm_slices.pwm1;
+    pwm1.set_ph_correct();
+    pwm1.set_div_int(20u8); // 50 hz
+    pwm1.enable();
+
+    // Output channel B on PWM4 to GPIO 25
+    let aileron_channel = &mut pwm0.channel_a;
+    aileron_channel.output_to(pins.gpio16);
+    let ailerons = PwmServo {
+        min: 3600,
+        max: 5900,
+        pin: aileron_channel,
+    };
+
+    let elevator_channel = &mut pwm0.channel_b;
+    elevator_channel.output_to(pins.gpio17);
+    let elevator = PwmServo {
+        min: 3600,
+        max: 5900,
+        pin: elevator_channel,
+    };
+
+    let rudder_channel = &mut pwm1.channel_a;
+    rudder_channel.output_to(pins.gpio18);
+    let rudder = PwmServo {
+        min: 3600,
+        max: 15900,
+        pin: rudder_channel,
+    };
+
+    let throttle_channel = &mut pwm1.channel_b;
+    throttle_channel.output_to(pins.gpio19);
+    let throttle = PwmServo {
+        min: 6500,
+        max: 7000,
+        pin: throttle_channel,
+    };
+
     let mut led_pin = pins.led.into_push_pull_output();
 
-    loop {
-        info!("on!");
+    let start_up_delay_ms = 1000;
+    let step_size = 3;
+
+    [throttle].iter_mut().for_each(|servo| {
+        let _ = servo.center();
+        delay.delay_ms(start_up_delay_ms);
+        let _ = servo.center();
+        delay.delay_ms(start_up_delay_ms);
+        let _ = servo.set_pos(i8::MIN);
+        delay.delay_ms(start_up_delay_ms);
+        let _ = servo.center();
+        delay.delay_ms(start_up_delay_ms);
+        let _ = servo.set_pos(i8::MAX);
+        delay.delay_ms(start_up_delay_ms);
+        let _ = servo.center();
+        delay.delay_ms(start_up_delay_ms);
         led_pin.set_high().unwrap();
-        delay.delay_ms(500);
-        info!("off!");
+        delay.delay_ms(start_up_delay_ms);
         led_pin.set_low().unwrap();
-        delay.delay_ms(500);
+
+        for i in (i8::MIN..=i8::MAX)
+            .step_by(step_size)
+            .chain((i8::MIN..=i8::MAX).step_by(step_size).rev())
+        {
+            led_pin.set_high().unwrap();
+            let _ = servo.set_pos(i);
+            delay.delay_us(500);
+
+            led_pin.set_low().unwrap();
+            delay.delay_us(500);
+        }
+    });
+
+    loop {
+        delay.delay_ms(start_up_delay_ms);
+        led_pin.set_high().unwrap();
+        delay.delay_ms(start_up_delay_ms);
+        led_pin.set_low().unwrap();
     }
 }
 
