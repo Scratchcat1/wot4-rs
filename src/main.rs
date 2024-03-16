@@ -5,6 +5,7 @@
 #![no_main]
 
 mod servo;
+mod throttle;
 
 use bsp::entry;
 use defmt::*;
@@ -12,7 +13,7 @@ use defmt_rtt as _;
 use embedded_hal::digital::v2::OutputPin;
 use panic_probe as _;
 use servo::{PwmServo, Servo};
-
+use throttle::{PwmThrottle, Throttle};
 // Provide an alias for our BSP so we can switch targets quickly.
 // Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
 use rp_pico as bsp;
@@ -90,15 +91,15 @@ fn main() -> ! {
     rudder_channel.output_to(pins.gpio18);
     let rudder = PwmServo {
         min: 3600,
-        max: 15900,
+        max: 4900,
         pin: rudder_channel,
     };
 
     let throttle_channel = &mut pwm1.channel_b;
     throttle_channel.output_to(pins.gpio19);
-    let throttle = PwmServo {
-        min: 6500,
-        max: 7000,
+    let throttle = PwmThrottle {
+        arm_min: 6500,
+        arm_max: 7000,
         pin: throttle_channel,
     };
 
@@ -107,7 +108,7 @@ fn main() -> ! {
     let start_up_delay_ms = 1000;
     let step_size = 3;
 
-    [throttle].iter_mut().for_each(|servo| {
+    [ailerons].iter_mut().for_each(|servo| {
         let _ = servo.center();
         delay.delay_ms(start_up_delay_ms);
         let _ = servo.center();
