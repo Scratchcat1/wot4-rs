@@ -89,7 +89,7 @@ fn main() -> ! {
     rudder_channel.output_to(pins.gpio18);
     let rudder = PwmServo {
         min: 3600,
-        max: 4900,
+        max: 5400,
         pin: rudder_channel,
     };
 
@@ -106,7 +106,7 @@ fn main() -> ! {
     let start_up_delay_ms = 1000;
     let step_size = 1;
 
-    [elevator].iter_mut().for_each(|servo| {
+    [rudder].iter_mut().for_each(|servo| {
         servo.center();
         delay.delay_ms(start_up_delay_ms);
         servo.center();
