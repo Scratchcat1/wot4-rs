@@ -5,23 +5,24 @@
 #![no_main]
 
 use bsp::entry;
-use defmt::*;
-use defmt_rtt as _;
-use embedded_hal::digital::v2::OutputPin;
-use panic_probe as _;
-use wotlib::servo::{PwmServo, Servo};
-use wotlib::throttle::{PwmThrottle, Throttle};
-// Provide an alias for our BSP so we can switch targets quickly.
-// Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
-use rp_pico as bsp;
-// use sparkfun_pro_micro_rp2040 as bsp;
-
 use bsp::hal::{
-    clocks::{init_clocks_and_plls, Clock},
+    clocks::{Clock, init_clocks_and_plls},
     pac, pwm,
     sio::Sio,
     watchdog::Watchdog,
 };
+use panic_probe as _;
+use defmt::*;
+use defmt_rtt as _;
+use embedded_hal::digital::v2::OutputPin;
+// Provide an alias for our BSP so we can switch targets quickly.
+// Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
+use rp_pico as bsp;
+
+use wotlib::servo::{PwmServo, Servo};
+use wotlib::throttle::PwmThrottle;
+
+// use sparkfun_pro_micro_rp2040 as bsp;
 
 #[entry]
 fn main() -> ! {
@@ -71,8 +72,8 @@ fn main() -> ! {
     let aileron_channel = &mut pwm0.channel_a;
     aileron_channel.output_to(pins.gpio16);
     let ailerons = PwmServo {
-        min: 3600,
-        max: 5900,
+        min: 4000,
+        max: 5500,
         pin: aileron_channel,
     };
 
@@ -103,20 +104,20 @@ fn main() -> ! {
     let mut led_pin = pins.led.into_push_pull_output();
 
     let start_up_delay_ms = 1000;
-    let step_size = 3;
+    let step_size = 1;
 
     [ailerons].iter_mut().for_each(|servo| {
-        let _ = servo.center();
+        servo.center();
         delay.delay_ms(start_up_delay_ms);
-        let _ = servo.center();
+        servo.center();
         delay.delay_ms(start_up_delay_ms);
-        let _ = servo.set_pos(i8::MIN);
+        servo.set_pos(i8::MIN);
         delay.delay_ms(start_up_delay_ms);
-        let _ = servo.center();
+        servo.center();
         delay.delay_ms(start_up_delay_ms);
-        let _ = servo.set_pos(i8::MAX);
+        servo.set_pos(i8::MAX);
         delay.delay_ms(start_up_delay_ms);
-        let _ = servo.center();
+        servo.center();
         delay.delay_ms(start_up_delay_ms);
         led_pin.set_high().unwrap();
         delay.delay_ms(start_up_delay_ms);
@@ -127,12 +128,13 @@ fn main() -> ! {
             .chain((i8::MIN..=i8::MAX).step_by(step_size).rev())
         {
             led_pin.set_high().unwrap();
-            let _ = servo.set_pos(i);
-            delay.delay_us(500);
+            servo.set_pos(i);
+            delay.delay_ms(10);
 
             led_pin.set_low().unwrap();
-            delay.delay_us(500);
+            delay.delay_ms(10);
         }
+        servo.center();
     });
 
     loop {
