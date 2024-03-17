@@ -20,7 +20,7 @@ use embedded_hal::digital::v2::OutputPin;
 use rp_pico as bsp;
 
 use wotlib::servo::{PwmServo, Servo};
-use wotlib::throttle::PwmThrottle;
+use wotlib::throttle::{PwmThrottle, Throttle};
 
 // use sparkfun_pro_micro_rp2040 as bsp;
 
@@ -95,9 +95,9 @@ fn main() -> ! {
 
     let throttle_channel = &mut pwm1.channel_b;
     throttle_channel.output_to(pins.gpio19);
-    let throttle = PwmThrottle {
-        arm_min: 6500,
-        arm_max: 7000,
+    let mut throttle = PwmThrottle {
+        neutral: 2200,
+        max: 4200,
         pin: throttle_channel,
     };
 
@@ -106,7 +106,7 @@ fn main() -> ! {
     let start_up_delay_ms = 1000;
     let step_size = 1;
 
-    [rudder].iter_mut().for_each(|servo| {
+    [elevator].iter_mut().for_each(|servo| {
         servo.center();
         delay.delay_ms(start_up_delay_ms);
         servo.center();
@@ -129,13 +129,25 @@ fn main() -> ! {
         {
             led_pin.set_high().unwrap();
             servo.set_pos(i);
-            delay.delay_ms(10);
+            delay.delay_ms(3);
 
             led_pin.set_low().unwrap();
-            delay.delay_ms(10);
+            delay.delay_ms(3);
         }
         servo.center();
     });
+
+    throttle.arm(&mut delay);
+    throttle.off();
+
+    (0..u8::MAX).step_by(10).for_each(|duty| {
+        throttle.set(duty);
+        delay.delay_ms(200);
+    });
+    throttle.off();
+
+    delay.delay_ms(2000);
+    throttle.disarm();
 
     loop {
         delay.delay_ms(start_up_delay_ms);
