@@ -1,8 +1,9 @@
 [package]
-edition = "2021"
-name = "{{project-name}}"
+name = "controller"
 version = "0.1.0"
-license = "MIT OR Apache-2.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 cortex-m = "0.7"
@@ -12,16 +13,17 @@ embedded-hal = { version = "0.2.5", features = ["unproven"] }
 defmt = "0.3"
 defmt-rtt = "0.4"
 panic-probe = { version = "0.3", features = ["print-defmt"] }
+wotlib = { path = "../wotlib"}
 
 # We're using a Pico by default on this template
 rp-pico = "0.8"
 
 # but you can use any BSP. Uncomment this to use the pro_micro_rp2040 BSP instead
-# sparkfun-pro-micro-rp2040 = "0.6"
+# sparkfun-pro-micro-rp2040 = "0.7"
 
 # If you're not going to use a Board Support Package you'll need these:
-# rp2040-hal = { version="0.8", features=["rt", "critical-section-impl"] }
-# rp2040-boot2 = "0.2"
+# rp2040-hal = { version="0.9", features=["rt", "critical-section-impl"] }
+# rp2040-boot2 = "0.3"
 
 # cargo build/run
 [profile.dev]
