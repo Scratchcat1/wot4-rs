@@ -72,16 +72,16 @@ fn main() -> ! {
     let aileron_channel = &mut pwm0.channel_a;
     aileron_channel.output_to(pins.gpio16);
     let ailerons = PwmServo {
-        min: 4000,
-        max: 5500,
+        min: 3600,
+        max: 5900,
         pin: aileron_channel,
     };
 
     let elevator_channel = &mut pwm0.channel_b;
     elevator_channel.output_to(pins.gpio17);
     let elevator = PwmServo {
-        min: 3600,
-        max: 5900,
+        min: 3700,
+        max: 6400,
         pin: elevator_channel,
     };
 
@@ -106,7 +106,7 @@ fn main() -> ! {
     let start_up_delay_ms = 1000;
     let step_size = 1;
 
-    [ailerons].iter_mut().for_each(|servo| {
+    [elevator].iter_mut().for_each(|servo| {
         servo.center();
         delay.delay_ms(start_up_delay_ms);
         servo.center();
