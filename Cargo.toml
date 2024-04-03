@@ -41,6 +41,9 @@ incremental = false
 opt-level = 3
 overflow-checks = true
 
+[profile.dev.package.sim]
+opt-level = 1
+
 # cargo build/run --release
 [profile.release]
 codegen-units = 1

@@ -32,6 +32,7 @@ struct Mass {
 #[derive(Component, Default)]
 struct Engines(Vec<Engine>);
 struct Engine {
+    transform: Transform,
     force: f32,
 }
 
@@ -45,7 +46,7 @@ fn setup(
     ass: Res<AssetServer>,
 ) {
 
-    let my_gltf = ass.load("my.glb#Scene0");
+    
     let debug_material = materials.add(StandardMaterial {
         base_color_texture: Some(images.add(uv_debug_texture())),
         ..default()
@@ -63,11 +64,12 @@ fn setup(
     let num_shapes = shapes.len();
 
     for (i, shape) in shapes.into_iter().enumerate() {
+        let my_gltf = ass.load("models/craft_speederA.glb#Scene0");
         commands.spawn((
-            PbrBundle {
-                mesh: shape,
-                material: debug_material.clone(),
-                transform: Transform::from_xyz(0.0, 0.0, 0.0),
+            SceneBundle {
+                scene: my_gltf,
+                // material: debug_material.clone(),
+                transform: Transform::from_xyz(0.0, 0.0, 0.0).with_rotation(Quat::from_euler(EulerRot::XYZ, 0.0, 0.0, 0.0)),
                 ..default()
             },
             Shape,
@@ -75,7 +77,10 @@ fn setup(
                 0: vec3(0.0, 0.0, 0.0),
             },
             Engines {
-                0: vec![Engine { force: 0.5 }],
+                0: vec![Engine { 
+                    transform: Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, 0.0, PI, 0.0)),
+                    force: 2.0
+                 }],
             },
             Mass { kg: 1.0 },
         ));
@@ -107,7 +112,7 @@ fn setup(
 
 fn rotate(mut query: Query<&mut Transform, With<Shape>>, time: Res<Time>) {
     for mut transform in &mut query {
-        // transform.rotate_x(time.delta_seconds() / 2.);
+        transform.rotate_x(time.delta_seconds() / 2.);
         // transform.rotate_y(time.delta_seconds() / 2.);
         // transform.rotate_z(time.delta_seconds() / 2.);
     }
@@ -123,14 +128,14 @@ fn apply_engines(mut query: Query<(&mut Velocity, &Transform, &Engines, &Mass)>,
     for (mut velocity, transform, engines, mass) in &mut query {
         for engine in &engines.0 {
             velocity.0 += transform
-                .rotation
-                .mul_vec3(Vec3::new(engine.force / mass.kg, 0.0, 0.0))
+                .rotation.mul_quat(engine.transform.rotation)
+                .mul_vec3(Vec3::new(0.0, 0.0, engine.force / mass.kg))
                 * time.delta_seconds();
         }
     }
 }
 
-const DRAG_FACTOR: f32 = 0.5;
+const DRAG_FACTOR: f32 = 0.95;
 fn apply_drag(mut query: Query<&mut Velocity>, time: Res<Time>) {
     for mut velocity in &mut query {
         velocity.0 *= (1.0 - (DRAG_FACTOR * time.delta_seconds()));
