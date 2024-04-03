@@ -25,9 +25,12 @@ rp-pico = "0.8"
 # rp2040-boot2 = "0.3"
 
 [workspace]
-members = [ "controller",
-    "wotlib"
+members = [ 
+    "controller",
+    "wotlib",
+    "sim"
 ]
+resolver = "2"
 
 # cargo build/run
 [profile.dev]

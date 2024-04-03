@@ -1,6 +1,5 @@
+use embedded_hal::blocking::delay::DelayMs;
 use embedded_hal::PwmPin;
-use embedded_hal::blocking::delay::{DelayMs, DelayUs};
-use crate::servo::PwmServo;
 
 pub trait Throttle {
     fn arm(&mut self, delay: &mut dyn DelayMs<u16>);
@@ -54,7 +53,7 @@ mod test {
 
     use crate::test_util::fake_pwm_pin::FakePwmPin;
 
-    use super::{Throttle, PwmThrottle};
+    use super::{PwmThrottle, Throttle};
 
     #[test]
     fn off_sets_duty_to_neutral() {
